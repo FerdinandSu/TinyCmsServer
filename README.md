@@ -18,5 +18,5 @@ Notice: **NO Access Control is provided by TinyCmsServer**.
 
 - TINY_CMS_DIR: Path to the root directory of contents served by TinyCmsServer
 - TINY_CMS_URL: Kestrel Endpoint URL of TinyCmsServer, e.g.
-  - http://localhost:80 for local usage
-  - http://0.0.0.0:80 for public usage
+  - `http://localhost:80` for local usage
+  - `http://0.0.0.0:80` for public usage
