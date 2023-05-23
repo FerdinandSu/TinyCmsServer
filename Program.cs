@@ -21,6 +21,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+var contentTypeProvider = new FileExtensionContentTypeProvider();
 
 var contentDir = Path.GetFullPath(app.Configuration["ResourceDir"] ?? "/contents");
 bool CheckPath(string path) => path.StartsWith(contentDir + Path.DirectorySeparatorChar) && !Directory.Exists(path);
@@ -33,7 +34,7 @@ app.UseFileServer(new FileServerOptions
     RequestPath = "/Files",
     StaticFileOptions =
     {
-        ContentTypeProvider = new FileExtensionContentTypeProvider(),
+        ContentTypeProvider = contentTypeProvider,
         ServeUnknownFileTypes = true
     }
 });
@@ -64,6 +65,16 @@ if (app.Configuration.GetValue("AllowDeleteDir", false))
         Directory.Delete(path);
         return NoContent();
     });
+if (app.Configuration.GetValue("AllowStream", false))
+    app.MapDelete("/Stream/{**path}",
+        (string path) =>
+        {
+            path = ContentPath(path);
+            if (!CheckPath(path)) return BadRequest();
+            if (!File.Exists(path)) return NotFound();
+            contentTypeProvider.TryGetContentType(path, out var contentType);
+            return File(path, contentType, Path.GetFileName(path), enableRangeProcessing: true);
+        });
 if (app.Configuration.GetValue("AllowWrite", false))
     app.MapPut("/Upload/{**path}",
     async ([FromRoute] string path, [FromForm] IFormFile file) =>
