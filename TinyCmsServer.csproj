@@ -7,7 +7,7 @@
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>.</DockerfileContext>
 		<RepositoryUrl>https://github.com/FerdinandSukhoi/TinyCmsServer</RepositoryUrl>
-		<Version>0.1</Version>
+		<Version>0.2</Version>
 		<Authors>Ferdinand Sukhoi</Authors>
 		
 	</PropertyGroup>

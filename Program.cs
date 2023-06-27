@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
@@ -66,7 +67,7 @@ if (app.Configuration.GetValue("AllowDeleteDir", false))
         return NoContent();
     });
 if (app.Configuration.GetValue("AllowStream", false))
-    app.MapDelete("/Stream/{**path}",
+    app.MapGet("/Stream/{**path}",
         (string path) =>
         {
             path = ContentPath(path);
@@ -75,34 +76,79 @@ if (app.Configuration.GetValue("AllowStream", false))
             contentTypeProvider.TryGetContentType(path, out var contentType);
             return File(path, contentType, Path.GetFileName(path), enableRangeProcessing: true);
         });
+//if (app.Configuration.GetValue("AllowDownloadDirZip", false))
+//    app.MapGet("/Stream/{**path}",
+//        (string path) =>
+//        {
+//            path = ContentPath(path);
+//            if (!CheckPath(path)) return BadRequest();
+//            if (!Directory.Exists(path)) return NotFound();
+//            ZipFile.CreateFromDirectory(path, $"{path}.zip");
+//            path = $"{path}.zip";
+//            contentTypeProvider.TryGetContentType(path, out var contentType);
+//            return File(path, contentType, Path.GetFileName(path), enableRangeProcessing: true);
+//        });
 if (app.Configuration.GetValue("AllowWrite", false))
+{
     app.MapPut("/Upload/{**path}",
-    async ([FromRoute] string path, [FromForm] IFormFile file) =>
-    {
-        path = ContentPath(path);
-        if (!CheckPath(path)) return BadRequest();
-        Path.GetDirectoryName(path);
-        EnsureDirectory(path);
-        if (File.Exists(path)) return BadRequest();
-        await using var rs = file.OpenReadStream();
-        await using var fs = File.OpenWrite(path);
-        await rs.CopyToAsync(fs);
-        fs.Close();
-        return NoContent();
-    });
+        async ([FromRoute] string path, [FromForm] IFormFile file) =>
+        {
+            path = ContentPath(path);
+            if (!CheckPath(path)) return BadRequest();
+            EnsureDirectory(path);
+            if (File.Exists(path)) return BadRequest();
+            await using var rs = file.OpenReadStream();
+            await using var fs = File.OpenWrite(path);
+            await rs.CopyToAsync(fs);
+            fs.Close();
+            return NoContent();
+        });
+    app.MapPut("/UploadDirZip/{**path}",
+        async ([FromRoute] string path, [FromForm] IFormFile file) =>
+        {
+            path = ContentPath(path);
+            if (!CheckPath(path)) return BadRequest();
+            EnsureDirectory(path);
+            if (File.Exists(path)) return BadRequest();
+            await using var rs = file.OpenReadStream();
+            await using var fs = File.OpenWrite($"{path}.zip");
+            await rs.CopyToAsync(fs);
+            fs.Close();
+            ZipFile.ExtractToDirectory($"{path}.zip", path);
+            File.Delete($"{path}.zip");
+            return NoContent();
+        });
+}
 if (app.Configuration.GetValue("AllowOverWrite", false))
+{
     app.MapPut("/UploadOrUpdate/{**path}",
-    async ([FromRoute] string path, [FromForm] IFormFile file) =>
-    {
-        path = ContentPath(path);
-        if (!CheckPath(path)) return BadRequest();
-        EnsureDirectory(path);
-        await using var rs = file.OpenReadStream();
-        await using var fs = File.OpenWrite(path);
-        await rs.CopyToAsync(fs);
-        fs.Close();
-        return NoContent();
-    });
+        async ([FromRoute] string path, [FromForm] IFormFile file) =>
+        {
+            path = ContentPath(path);
+            if (!CheckPath(path)) return BadRequest();
+            EnsureDirectory(path);
+            await using var rs = file.OpenReadStream();
+            await using var fs = File.OpenWrite(path);
+            await rs.CopyToAsync(fs);
+            fs.Close();
+            return NoContent();
+        });
+    app.MapPut("/UploadOrUpdateDirZip/{**path}",
+        async ([FromRoute] string path, [FromForm] IFormFile file) =>
+        {
+            path = ContentPath(path);
+            if (!CheckPath(path)) return BadRequest();
+            EnsureDirectory(path);
+            await using var rs = file.OpenReadStream();
+            await using var fs = File.OpenWrite($"{path}.zip");
+            await rs.CopyToAsync(fs);
+            fs.Close();
+            ZipFile.ExtractToDirectory($"{path}.zip", path,true);
+            File.Delete($"{path}.zip");
+            return NoContent();
+        });
+}
+
 
 app.Run();
 
